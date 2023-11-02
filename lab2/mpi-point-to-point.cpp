@@ -2,8 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-int main(int argc, char* argv[])
- {
+int main(int argc, char* argv[]) {
     double* b, TotalSum, ProcSum = 0.0;
     double* a;
     int ProcRank, ProcNum, N = 3200000, i, j, Q = 28, k;
@@ -28,13 +27,15 @@ int main(int argc, char* argv[])
         }
     }
     ProcSum /= (double)Q;
-    if (ProcRank == 0)
+    if (ProcRank == 0) {
         for (i = 1, TotalSum = ProcSum; i < ProcNum; ++i) {
-            MPI_Recv(&ProcSum, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &Status);
-            TotalSum = TotalSum + ProcSum;
+            MPI_Recv(&ProcSum, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &Status); // Получение суммы от каждого процесса
+            TotalSum = TotalSum + ProcSum; // Суммирование сумм каждого процесса
         }
-    else MPI_Send(&ProcSum, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
+    } else {
+        MPI_Send(&ProcSum, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD); // Отправка суммы на процесс 0
+    }
+    MPI_Barrier(MPI_COMM_WORLD); // Синхронизация всех процессов
     end_time = MPI_Wtime();
     end_time = end_time - st_time;
     if (ProcRank == 0) {
