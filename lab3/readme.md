@@ -32,9 +32,10 @@ icc -fopenmp -o openmp openmp.cpp
 
 # Полезные строчки
 
-icc -fopenmp -o openmp dynamic.c
-icc -fopenmp -o openmp guided.c
-icc -fopenmp -o openmp static.c
-mpicc -o mpi mpi.c
+icc -fopenmp -o openmp openmp.cpp
+
+mpicc -o mpi mpi.cpp
+
 g++ -o simple simple.cpp
+
 ./simple

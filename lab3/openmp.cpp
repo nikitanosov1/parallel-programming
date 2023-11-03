@@ -13,11 +13,11 @@ int main() {
     double a[NMAX], b[NMAX], sum[NMAX];
     int  i, step, t, j;
     omp_set_num_threads(NUM_OF_THREADS);
-    for (i = 0; i < n; ++i) {
+    for (i = 0; i < NMAX; ++i) {
         a[i] = i;
         b[i] = i;
     }
-    double st_time, end_time, time_static = 0.0, time_dynamic = 0.0, time_quided = 0.0, time_consistent = 0.0;
+    double st_time, end_time, time_static = 0.0, time_dynamic = 0.0, time_quided = 0.0;
 
     for (t = 0; t < ITERATIONS; t++) {
         for (step = 0; step < 3; step++) {
