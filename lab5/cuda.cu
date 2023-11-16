@@ -31,11 +31,9 @@ __global__ void gpu_blas_mmul(const cuDoubleComplex* A, const cuDoubleComplex* B
     const cuDoubleComplex* alpha = &alf;
     const cuDoubleComplex* beta = &bet;
 
-    int a = 1 + 2;
     // CUBLAS is starting here
-    // cublasHandle_t handle;
-    // cublasStatus_t status = cublasCreate(&handle);
-
+    cublasHandle_t handle;
+    cublasStatus_t status = cublasCreate(&handle);
     // if (status != CUBLAS_STATUS_SUCCESS)
     // {
     //     if (status == CUBLAS_STATUS_NOT_INITIALIZED) {
@@ -45,22 +43,22 @@ __global__ void gpu_blas_mmul(const cuDoubleComplex* A, const cuDoubleComplex* B
     // }
 
     // Do the actual multiplication
-    // cublasZgemm(handle,
-    //             CUBLAS_OP_T,
-    //             CUBLAS_OP_N,
-    //             m,
-    //             n,
-    //             k,
-    //             alpha,
-    //             A,
-    //             lda,
-    //             B,
-    //             ldb,
-    //             beta,
-    //             C,
-    //             ldc);
+    cublasZgemm(handle,
+                CUBLAS_OP_T,
+                CUBLAS_OP_N,
+                m,
+                n,
+                k,
+                alpha,
+                A,
+                lda,
+                B,
+                ldb,
+                beta,
+                C,
+                ldc);
     // Destroy the handle
-    // cublasDestroy(handle);
+    cublasDestroy(handle);
 }
 
 
