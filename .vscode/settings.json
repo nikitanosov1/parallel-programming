@@ -1,9 +1,5 @@
 {
   "files.associations": {
-    "stdio.h": "c",
-    "cstdlib": "cpp",
-    "algorithm": "cpp",
-    "ctime": "cpp",
-    "stdlib.h": "c"
+    "complex": "cpp"
   }
 }
