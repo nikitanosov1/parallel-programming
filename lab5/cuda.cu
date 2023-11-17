@@ -22,7 +22,7 @@ void GPU_fill_rand(cuDoubleComplex* A, int nr_rows_A, int nr_cols_A) {
 /// Multiply the arrays A and B on GPU and save the result in C
 // C(m,n) = A(m,k) * B(k,n)
 void gpu_blas_mmul(const cuDoubleComplex* A, const cuDoubleComplex* B, cuDoubleComplex* C, const int m, const int k, const int n) {
-    int lda = m, ldb = k, ldc = m;
+    int lda = m, ldb = k, ldc = n;
     const cuDoubleComplex alf = make_cuDoubleComplex(1.0, 0.0);
     const cuDoubleComplex bet = make_cuDoubleComplex(0.0, 0.0);
     const cuDoubleComplex* alpha = &alf;
