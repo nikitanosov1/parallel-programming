@@ -9,7 +9,7 @@ nvcc cuda.cu
 nvcc cuda.cu -lcublas -dlink -o cuda
 nvcc cuda.cu -lcublas -dlink -lcublas_device -lcudadevrt
 
-На суперкомпьютере
+На суперкомпьютере (использовал)
 sbatch cuda.sl
 
 g++ -o simple simple.cpp
