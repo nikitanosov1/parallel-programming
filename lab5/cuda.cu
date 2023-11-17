@@ -7,9 +7,6 @@
 
 using namespace std;
 
-#define GRID_DIM 10
-#define BLOCK_DIM 10
-
 // Fill the array A(nr_rows_A, nr_cols_A) with random numbers on GPU
 void GPU_fill_rand(cuDoubleComplex* A, int nr_rows_A, int nr_cols_A) {
     // Create a pseudo-random number generator
@@ -24,7 +21,7 @@ void GPU_fill_rand(cuDoubleComplex* A, int nr_rows_A, int nr_cols_A) {
 
 /// Multiply the arrays A and B on GPU and save the result in C
 // C(m,n) = A(m,k) * B(k,n)
-__global__ void gpu_blas_mmul(const cuDoubleComplex* A, const cuDoubleComplex* B, cuDoubleComplex* C, const int m, const int k, const int n) {
+void gpu_blas_mmul(const cuDoubleComplex* A, const cuDoubleComplex* B, cuDoubleComplex* C, const int m, const int k, const int n) {
     int lda = m, ldb = k, ldc = m;
     const cuDoubleComplex alf = make_cuDoubleComplex(1.0, 0.0);
     const cuDoubleComplex bet = make_cuDoubleComplex(0.0, 0.0);
@@ -34,18 +31,10 @@ __global__ void gpu_blas_mmul(const cuDoubleComplex* A, const cuDoubleComplex* B
     // CUBLAS is starting here
     cublasHandle_t handle;
     cublasStatus_t status = cublasCreate(&handle);
-    // if (status != CUBLAS_STATUS_SUCCESS)
-    // {
-    //     if (status == CUBLAS_STATUS_NOT_INITIALIZED) {
-    //                      cout << "Ошибка создания объекта CUBLAS" << endl;
-    //     }
-    //     return;
-    // }
-
     // Do the actual multiplication
     cublasZgemm(handle,
-                CUBLAS_OP_T,
                 CUBLAS_OP_N,
+                CUBLAS_OP_T,
                 m,
                 n,
                 k,
@@ -60,7 +49,6 @@ __global__ void gpu_blas_mmul(const cuDoubleComplex* A, const cuDoubleComplex* B
     // Destroy the handle
     cublasDestroy(handle);
 }
-
 
 void print_matrix(cuDoubleComplex* matrix, int rows, int cols) {
     for (int i = 0; i < rows; ++i) {
@@ -80,10 +68,9 @@ void fill_matrix(cuDoubleComplex* matrix, int rows, int cols) {
     }
 }
 
-
 int main() {
     int nr_rows_A, nr_cols_A, nr_rows_B, nr_cols_B, nr_rows_C, nr_cols_C;
-    nr_rows_A = nr_cols_A = nr_rows_B = nr_cols_B = nr_rows_C = nr_cols_C = 10;
+    nr_rows_A = nr_cols_A = nr_rows_B = nr_cols_B = nr_rows_C = nr_cols_C = 1250; // 1250, 2500, 5000
     cuDoubleComplex* h_A = (cuDoubleComplex*)malloc(nr_rows_A * nr_cols_A * sizeof(cuDoubleComplex));
     cuDoubleComplex* h_B = (cuDoubleComplex*)malloc(nr_rows_B * nr_cols_B * sizeof(cuDoubleComplex));
     cuDoubleComplex* h_C = (cuDoubleComplex*)malloc(nr_rows_C * nr_cols_C * sizeof(cuDoubleComplex));
@@ -99,29 +86,27 @@ int main() {
     cudaMalloc(&d_C, nr_rows_C * nr_cols_C * sizeof(cuDoubleComplex));
 
     double start_ = clock();
-    /*
-        GPU_fill_rand(d_A, nr_rows_A, nr_cols_A);
-        GPU_fill_rand(d_B, nr_rows_B, nr_cols_B);
-    */
-
+    
+    // GPU_fill_rand(d_A, nr_rows_A, nr_cols_A);
+    // GPU_fill_rand(d_B, nr_rows_B, nr_cols_B);
+    
     fill_matrix(h_A, nr_rows_A, nr_cols_A);
     fill_matrix(h_B, nr_rows_B, nr_cols_B);
-
     // copy the vectors into the GPU
     cudaMemcpy(d_A, h_A, nr_rows_A * nr_cols_A * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, h_B, nr_rows_B * nr_cols_B * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice);
 
-    gpu_blas_mmul<<<GRID_DIM, BLOCK_DIM>>>(d_A, d_B, d_C, nr_rows_A, nr_cols_A, nr_cols_B);
+    gpu_blas_mmul(d_A, d_B, d_C, nr_rows_A, nr_cols_A, nr_cols_B);
 
-    //cudaMemcpy(h_A, d_A, nr_rows_A * nr_cols_A * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(h_B, d_B, nr_rows_B * nr_cols_B * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
+    // cudaMemcpy(h_A, d_A, nr_rows_A * nr_cols_A * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
+    // cudaMemcpy(h_B, d_B, nr_rows_B * nr_cols_B * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
     cudaMemcpy(h_C, d_C, nr_rows_C * nr_cols_C * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
 
     double end_ = clock();
 
     printf("C = \n");
     print_matrix(h_C, 5, 5);
-    printf("Parallel mul time =  %f ", (end_ - start_) / CLOCKS_PER_SEC);
+    printf("Parallel mul time =  %.6f ", (end_ - start_) / CLOCKS_PER_SEC);
     cudaFree(d_A);
     cudaFree(d_B);
     cudaFree(d_C);

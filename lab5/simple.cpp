@@ -3,7 +3,7 @@
 #include <time.h>
 #include <complex>
 
-#define NMAX 10
+#define NMAX 1250 // 1250, 2500, 5000
 
 void printMatrix(std::complex<double>* matrix, int rows, int cols) {
     for (int i = 0; i < rows; ++i) {
@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
         a[j] = std::complex<double>((rand() + 0.0) / RAND_MAX, (rand() + 0.0) / RAND_MAX);
         b[j] = std::complex<double>((rand() + 0.0) / RAND_MAX, (rand() + 0.0) / RAND_MAX);
     }
-    transpose(a, NMAX);
+    transpose(b, NMAX);
     multiply(a, b, c, NMAX);
     end_time = clock() - st_time;
     printf("\nTIME OF WORK IS: %f ", end_time / CLOCKS_PER_SEC);
