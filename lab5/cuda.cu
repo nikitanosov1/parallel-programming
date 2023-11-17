@@ -35,17 +35,12 @@ void gpu_blas_mmul(const cuDoubleComplex* A, const cuDoubleComplex* B, cuDoubleC
     cublasZgemm(handle,
                 CUBLAS_OP_N,
                 CUBLAS_OP_T,
-                m,
-                n,
-                k,
+                m, n, k,
                 alpha,
-                A,
-                lda,
-                B,
-                ldb,
+                A, lda,
+                B, ldb,
                 beta,
-                C,
-                ldc);
+                C, ldc);
     // Destroy the handle
     cublasDestroy(handle);
 }
