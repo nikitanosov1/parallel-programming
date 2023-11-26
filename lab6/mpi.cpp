@@ -35,11 +35,14 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Инициализация матрицы B на всех процессах
     matrix_B = new int[MATRIX_SIZE * MATRIX_SIZE];
-    for (int i = 0; i < MATRIX_SIZE * MATRIX_SIZE; i++) {
-        matrix_B[i] = 2;
+    // Инициализация матрицы B на всех процессах
+    if (rank == 0) {
+        for (int i = 0; i < MATRIX_SIZE * MATRIX_SIZE; i++) {
+            matrix_B[i] = 2;
+        }
     }
+    MPI_Bcast(matrix_B, MATRIX_SIZE * MATRIX_SIZE, MPI_INT, 0, MPI_COMM_WORLD);
 
     // Расчет размера блока для каждого процесса
     block_size = MATRIX_SIZE / size; 
@@ -52,7 +55,7 @@ int main(int argc, char** argv) {
     MPI_Scatter(matrix_A, block_size * MATRIX_SIZE, MPI_INT, submatrix_A, block_size * MATRIX_SIZE, MPI_INT, 0, MPI_COMM_WORLD);
 
     // Рассылка матрицы B на все процессы
-    MPI_Bcast(matrix_B, MATRIX_SIZE * MATRIX_SIZE, MPI_INT, 0, MPI_COMM_WORLD);
+    // MPI_Bcast(matrix_B, MATRIX_SIZE * MATRIX_SIZE, MPI_INT, 0, MPI_COMM_WORLD);
 
     // Умножение блоков матрицы А на матрицу B
     multiply_matrices(submatrix_A, matrix_B, submatrix_C, block_size);
