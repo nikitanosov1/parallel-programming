@@ -3,10 +3,10 @@
 #include <cstdlib>
 #include <algorithm>
 
-#define ROWS_A 6
-#define COLS_A 4
+#define ROWS_A 10
+#define COLS_A 10
 #define ROWS_B COLS_A
-#define COLS_B 5
+#define COLS_B 10
 
 int main(int argc, char* argv[]) { 
 	MPI_Status Status;
@@ -14,9 +14,9 @@ int main(int argc, char* argv[]) {
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &ProcNum);
 	MPI_Comm_rank(MPI_COMM_WORLD, &ProcRank);
-
+	MPI_Request request;
 	int *blockA, *blockB, *blockC, *A, *B, *C;
-	double st_time, end_time;
+	double startTime, endTime;
 
 	blockA = (int*)malloc(ROWS_A / ProcNum * COLS_A * sizeof(int));
 	blockB = (int*)malloc(ROWS_B / ProcNum * COLS_B * sizeof(int));
@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
 	int blockSizeB = ROWS_B / ProcNum * COLS_B;
 	int rowCountInBlockA = ROWS_A / ProcNum;
 	int rowCountInBlockB = ROWS_B / ProcNum;
-	st_time = MPI_Wtime();
+	startTime = MPI_Wtime();
 	MPI_Scatter(A, blockSizeA, MPI_INT, blockA, blockSizeA, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Scatter(B, blockSizeB, MPI_INT, blockB, blockSizeB, MPI_INT, 0, MPI_COMM_WORLD);
 	for (int i = 0; i < ProcNum; ++i) {
@@ -52,19 +52,21 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
-		MPI_Send(blockA, blockSizeA, MPI_INT, (ProcRank + 1) % ProcNum, 0, MPI_COMM_WORLD);
+		MPI_Isend(blockA, blockSizeA, MPI_INT, (ProcRank + 1) % ProcNum, 0, MPI_COMM_WORLD, &request);
 		MPI_Recv(blockA, blockSizeA, MPI_INT, (ProcNum + ProcRank - 1) % ProcNum, 0, MPI_COMM_WORLD, &Status);
 	}
 	MPI_Gather(blockC, ROWS_A / ProcNum * COLS_B, MPI_INT, C, ROWS_A / ProcNum * COLS_B, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Barrier(MPI_COMM_WORLD);
 	
-	end_time = MPI_Wtime();
-	end_time = end_time - st_time;
+	endTime = MPI_Wtime();
+	double total_time = endTime - startTime;
 	if (ProcRank == 0) {
+		printf("\nTime of work is %f", total_time);
 		for (int i = 0; i < ROWS_A; ++i) {
 			printf("\n");
-			for (int j = 0; j < COLS_B; ++j)
+			for (int j = 0; j < COLS_B; ++j) {
 				printf("%d  ", C[i + j * ROWS_A]);
+			}
 		}
 		free(A);
 		free(B);
@@ -76,5 +78,3 @@ int main(int argc, char* argv[]) {
 	MPI_Finalize();
 	return 0;
 }
-
-
