@@ -1,87 +1,80 @@
-#include <mpi.h>
-#include <iostream>
+﻿#include "mpi.h"
+#include <cstdio>
+#include <cstdlib>
+#include <algorithm>
 
-#define MATRIX_SIZE 4 // Размерность матриц
+#define ROWS_A 6
+#define COLS_A 4
+#define ROWS_B COLS_A
+#define COLS_B 5
 
-// Функция для умножения матриц
-void multiply_matrices(int* submatrix_A, int* matrix_B, int* submatrix_C, int block_size) {
-    for (int i = 0; i < block_size; i++) {
-        for (int j = 0; j < MATRIX_SIZE; j++) {
-            submatrix_C[i * MATRIX_SIZE + j] = 0;
-            for (int k = 0; k < MATRIX_SIZE; k++) {
-                submatrix_C[i * MATRIX_SIZE + j] += submatrix_A[i * MATRIX_SIZE + k] * matrix_B[k * MATRIX_SIZE + j];
-            }
-        }
-    }
+int main(int argc, char* argv[]) { 
+	MPI_Status Status;
+	int ProcRank, ProcNum;
+	MPI_Init(&argc, &argv);
+	MPI_Comm_size(MPI_COMM_WORLD, &ProcNum);
+	MPI_Comm_rank(MPI_COMM_WORLD, &ProcRank);
+
+	int *blockA, *blockB, *blockC, *A, *B, *C;
+	double st_time, end_time;
+
+	blockA = (int*)malloc(ROWS_A / ProcNum * COLS_A * sizeof(int));
+	blockB = (int*)malloc(ROWS_B / ProcNum * COLS_B * sizeof(int));
+	blockC = (int*)malloc(ROWS_A / ProcNum * COLS_B * sizeof(int));
+	for (int i = 0; i < ROWS_A * COLS_B / ProcNum; ++i) {
+		blockC[i] = 0;
+	}
+
+	if (ProcRank == 0) {
+		A = (int*)malloc(ROWS_A * COLS_A * sizeof(int));
+		B = (int*)malloc(ROWS_B * COLS_B * sizeof(int));
+		C = (int*)malloc(ROWS_A * COLS_B * sizeof(int));
+		for (int i = 0; i < ROWS_A * COLS_A; ++i) {
+			A[i] = 1;
+		}
+		for (int i = 0; i < ROWS_B * COLS_B; ++i) {
+			B[i] = 2;
+		}
+	}
+	int blockSizeA = ROWS_A / ProcNum * COLS_A;
+	int blockSizeB = ROWS_B / ProcNum * COLS_B;
+	int rowCountInBlockA = ROWS_A / ProcNum;
+	int rowCountInBlockB = ROWS_B / ProcNum;
+	st_time = MPI_Wtime();
+	MPI_Scatter(A, blockSizeA, MPI_INT, blockA, blockSizeA, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Scatter(B, blockSizeB, MPI_INT, blockB, blockSizeB, MPI_INT, 0, MPI_COMM_WORLD);
+	for (int i = 0; i < ProcNum; ++i) {
+		for (int blockCRowIndex = 0; blockCRowIndex < rowCountInBlockA; ++blockCRowIndex) {
+			for (int blockCColIndex = 0; blockCColIndex < COLS_B; ++blockCColIndex) {
+				for (int k = 0; k < std::min(COLS_A, rowCountInBlockB); ++k) {
+					blockC[COLS_B * blockCRowIndex + blockCColIndex] += blockA[COLS_A * blockCRowIndex + k] * blockB[COLS_B * k + blockCColIndex];
+				}
+			}
+		}
+
+		MPI_Send(blockA, blockSizeA, MPI_INT, (ProcRank + 1) % ProcNum, 0, MPI_COMM_WORLD);
+		MPI_Recv(blockA, blockSizeA, MPI_INT, (ProcNum + ProcRank - 1) % ProcNum, 0, MPI_COMM_WORLD, &Status);
+	}
+	MPI_Gather(blockC, ROWS_A / ProcNum * COLS_B, MPI_INT, C, ROWS_A / ProcNum * COLS_B, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Barrier(MPI_COMM_WORLD);
+	
+	end_time = MPI_Wtime();
+	end_time = end_time - st_time;
+	if (ProcRank == 0) {
+		for (int i = 0; i < ROWS_A; ++i) {
+			printf("\n");
+			for (int j = 0; j < COLS_B; ++j)
+				printf("%d  ", C[i + j * ROWS_A]);
+		}
+		free(A);
+		free(B);
+		free(C);
+	}
+	free(blockA);
+	free(blockB);
+	free(blockC);
+	MPI_Finalize();
+	return 0;
 }
 
-int main(int argc, char** argv) {
-    int rank, size;
-    int* matrix_A = nullptr;
-    int* matrix_B = nullptr;
-    int* submatrix_A = nullptr;
-    int* submatrix_C = nullptr;
-    int block_size;
 
-    MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    // Инициализация матрицы А только на процессе с рангом 0
-    if (rank == 0) {
-        matrix_A = new int[MATRIX_SIZE * MATRIX_SIZE];
-        for (int i = 0; i < MATRIX_SIZE * MATRIX_SIZE; i++) {
-            matrix_A[i] = 1;
-        }
-    }
-
-    matrix_B = new int[MATRIX_SIZE * MATRIX_SIZE];
-    // Инициализация матрицы B на всех процессах
-    if (rank == 0) {
-        for (int i = 0; i < MATRIX_SIZE * MATRIX_SIZE; i++) {
-            matrix_B[i] = 2;
-        }
-    }
-    MPI_Bcast(matrix_B, MATRIX_SIZE * MATRIX_SIZE, MPI_INT, 0, MPI_COMM_WORLD);
-
-    // Расчет размера блока для каждого процесса
-    block_size = MATRIX_SIZE / size; 
-
-    // Выделение памяти для блока матрицы А и матрицы С
-    submatrix_A = new int[block_size * MATRIX_SIZE];
-    submatrix_C = new int[block_size * MATRIX_SIZE];
-
-    // Рассылка блоков матрицы А на все процессы
-    MPI_Scatter(matrix_A, block_size * MATRIX_SIZE, MPI_INT, submatrix_A, block_size * MATRIX_SIZE, MPI_INT, 0, MPI_COMM_WORLD);
-
-    // Рассылка матрицы B на все процессы
-    // MPI_Bcast(matrix_B, MATRIX_SIZE * MATRIX_SIZE, MPI_INT, 0, MPI_COMM_WORLD);
-
-    // Умножение блоков матрицы А на матрицу B
-    multiply_matrices(submatrix_A, matrix_B, submatrix_C, block_size);
-
-    // Сбор результатов с каждого процесса на процессе с рангом 0
-    MPI_Gather(submatrix_C, block_size * MATRIX_SIZE, MPI_INT, matrix_A, block_size * MATRIX_SIZE, MPI_INT, 0, MPI_COMM_WORLD);
-
-    // Вывод результата на процессе с рангом 0
-    if (rank == 0) {
-        std::cout << "Matrix C:" << std::endl;
-        for (int i = 0; i < MATRIX_SIZE; i++) {
-            for (int j = 0; j < MATRIX_SIZE; j++) {
-                std::cout << matrix_A[i * MATRIX_SIZE + j] << " ";
-            }
-            std::cout << std::endl;
-        }
-    }
-
-    // Освобождение памяти
-    delete[] matrix_A;
-    delete[] matrix_B;
-    delete[] submatrix_A;
-    delete[] submatrix_C;
-
-    // MPI_Type_free(&block_type);
-    MPI_Finalize();
-
-    return 0;
-}
