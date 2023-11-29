@@ -3,10 +3,10 @@
 #include <cstdlib>
 #include <algorithm>
 
-#define ROWS_A 10
-#define COLS_A 10
+#define ROWS_A 2048
+#define COLS_A 2048
 #define ROWS_B COLS_A
-#define COLS_B 10
+#define COLS_B 2048
 
 int main(int argc, char* argv[]) { 
 	MPI_Status Status;
@@ -62,12 +62,12 @@ int main(int argc, char* argv[]) {
 	double total_time = endTime - startTime;
 	if (ProcRank == 0) {
 		printf("\nTime of work is %f", total_time);
-		for (int i = 0; i < ROWS_A; ++i) {
-			printf("\n");
-			for (int j = 0; j < COLS_B; ++j) {
-				printf("%d  ", C[i + j * ROWS_A]);
-			}
-		}
+		// for (int i = 0; i < ROWS_A; ++i) {
+		// 	printf("\n");
+		// 	for (int j = 0; j < COLS_B; ++j) {
+		// 		printf("%d  ", C[i + j * ROWS_A]);
+		// 	}
+		// }
 		free(A);
 		free(B);
 		free(C);
