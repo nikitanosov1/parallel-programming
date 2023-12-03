@@ -8,6 +8,16 @@
 #define ROWS_B COLS_A
 #define COLS_B 2048
 
+void printMatrix(int* matrix, int rows, int cols) {
+	for (int i = 0; i < rows; ++i) {
+		printf("\n");
+		for (int j = 0; j < cols; ++j) {
+			printf("%d  ", matrix[i * cols + j]);
+		}
+	}
+	printf("\n");
+}
+
 int main(int argc, char* argv[]) { 
 	MPI_Status Status;
 	int ProcRank, ProcNum;
@@ -21,7 +31,7 @@ int main(int argc, char* argv[]) {
 	blockA = (int*)malloc(ROWS_A / ProcNum * COLS_A * sizeof(int));
 	blockB = (int*)malloc(ROWS_B / ProcNum * COLS_B * sizeof(int));
 	blockC = (int*)malloc(ROWS_A / ProcNum * COLS_B * sizeof(int));
-	for (int i = 0; i < ROWS_A * COLS_B / ProcNum; ++i) {
+	for (int i = 0; i < ROWS_A / ProcNum * COLS_B; ++i) {
 		blockC[i] = 0;
 	}
 
@@ -46,15 +56,18 @@ int main(int argc, char* argv[]) {
 	for (int i = 0; i < ProcNum; ++i) {
 		for (int blockCRowIndex = 0; blockCRowIndex < rowCountInBlockA; ++blockCRowIndex) {
 			for (int blockCColIndex = 0; blockCColIndex < COLS_B; ++blockCColIndex) {
-				for (int k = 0; k < std::min(COLS_A, rowCountInBlockB); ++k) {
-					blockC[COLS_B * blockCRowIndex + blockCColIndex] += blockA[COLS_A * blockCRowIndex + k] * blockB[COLS_B * k + blockCColIndex];
+				for (int k = 0; k < rowCountInBlockB; ++k) {
+					int startColInA = (i + ProcRank) % ProcNum * rowCountInBlockB;
+					blockC[COLS_B * blockCRowIndex + blockCColIndex] += blockA[COLS_A * blockCRowIndex + startColInA + k] * blockB[COLS_B * k + blockCColIndex];
 				}
 			}
 		}
-
-		MPI_Isend(blockA, blockSizeA, MPI_INT, (ProcRank + 1) % ProcNum, 0, MPI_COMM_WORLD, &request);
-		MPI_Recv(blockA, blockSizeA, MPI_INT, (ProcNum + ProcRank - 1) % ProcNum, 0, MPI_COMM_WORLD, &Status);
-	}
+		if (ProcRank == 0) {
+			printMatrix(blockC, rowCountInBlockA, COLS_B);
+		}
+		MPI_Isend(blockB, blockSizeB, MPI_INT, (ProcRank + 1) % ProcNum, 0, MPI_COMM_WORLD, &request);
+		MPI_Recv(blockB, blockSizeB, MPI_INT, (ProcNum + ProcRank - 1) % ProcNum, 0, MPI_COMM_WORLD, &Status);
+	}	
 	MPI_Gather(blockC, ROWS_A / ProcNum * COLS_B, MPI_INT, C, ROWS_A / ProcNum * COLS_B, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Barrier(MPI_COMM_WORLD);
 	
@@ -62,12 +75,7 @@ int main(int argc, char* argv[]) {
 	double total_time = endTime - startTime;
 	if (ProcRank == 0) {
 		printf("\nTime of work is %f", total_time);
-		// for (int i = 0; i < ROWS_A; ++i) {
-		// 	printf("\n");
-		// 	for (int j = 0; j < COLS_B; ++j) {
-		// 		printf("%d  ", C[i + j * ROWS_A]);
-		// 	}
-		// }
+		// printMatrix(C, ROWS_A, COLS_B);
 		free(A);
 		free(B);
 		free(C);
