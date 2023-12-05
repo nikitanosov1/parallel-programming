@@ -3,10 +3,10 @@
 #include <cstdlib>
 #include <algorithm>
 
-#define ROWS_A 2048
-#define COLS_A 2048
+#define ROWS_A 4
+#define COLS_A 2
 #define ROWS_B COLS_A
-#define COLS_B 2048
+#define COLS_B 3
 
 void printMatrix(int* matrix, int rows, int cols) {
 	for (int i = 0; i < rows; ++i) {
@@ -62,9 +62,6 @@ int main(int argc, char* argv[]) {
 				}
 			}
 		}
-		if (ProcRank == 0) {
-			printMatrix(blockC, rowCountInBlockA, COLS_B);
-		}
 		MPI_Isend(blockB, blockSizeB, MPI_INT, (ProcRank + 1) % ProcNum, 0, MPI_COMM_WORLD, &request);
 		MPI_Recv(blockB, blockSizeB, MPI_INT, (ProcNum + ProcRank - 1) % ProcNum, 0, MPI_COMM_WORLD, &Status);
 	}	
@@ -75,7 +72,7 @@ int main(int argc, char* argv[]) {
 	double total_time = endTime - startTime;
 	if (ProcRank == 0) {
 		printf("\nTime of work is %f", total_time);
-		// printMatrix(C, ROWS_A, COLS_B);
+		printMatrix(C, ROWS_A, COLS_B);
 		free(A);
 		free(B);
 		free(C);

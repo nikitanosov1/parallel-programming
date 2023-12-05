@@ -22,3 +22,15 @@ g++ -o simple simple.cpp
 ./simple
 
 PS. Проверь еще, что в vscode стоит g++, а не gcc. Ты же на плюсах пишешь, а не на си.
+
+
+
+MPI на суперкомпьютере:
+module load intel/icc18
+module load intel/mpi4
+mpicc -o mpi mpi.cpp
+sbatch Script_mpi.sl
+
+последовательная на суперкомпьютере:
+g++ -o simple simple.cpp
+sbatch simple.sl
